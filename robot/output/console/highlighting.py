@@ -34,6 +34,7 @@ class HighlightingStream(object):
     def __init__(self, stream, colors='AUTO'):
         self.stream = stream
         self._highlighter = self._get_highlighter(stream, colors)
+        self._lasttext = ''
 
     def _get_highlighter(self, stream, colors):
         options = {'AUTO': Highlighter if isatty(stream) else NoHighlighting,
@@ -48,6 +49,7 @@ class HighlightingStream(object):
         return highlighter(stream)
 
     def write(self, text, flush=True):
+        self._lasttext = text[-1]
         self.stream.write(console_encode(text, stream=self.stream))
         if flush:
             self.flush()
