@@ -48,7 +48,7 @@ class VerboseOutput(object):
         self._running_test = True
 
     def end_test(self, test):
-        # self._writer.status(test.status, clear=True)
+        self._writer.status(test.status, clear=True)
         self._writer.message(test.message)
         self._writer.test_separator()
         self._running_test = False
@@ -124,12 +124,6 @@ class VerboseWriter(object):
         if erase_last_message:
             self._debug_messages.pop()
 
-    def _write_debug_end(self, erase_last_message=False):
-        if self._debug_messages[-1][0] != ' ':
-            self._stdout.write(self._debug_messages[-1])
-        if erase_last_message:
-            self._debug_messages.pop()
-
     def _get_width_and_separator(self, start_suite):
         if start_suite:
             return self._width, '\n'
@@ -154,24 +148,19 @@ class VerboseWriter(object):
     def status(self, status, clear=False):
         if self._should_clear_markers(clear):
             self._clear_status()
-        if self._stdout._lasttext != '\n':
-            self._stdout.write('| ', flush=False)
-            self._stdout.highlight(status, flush=False)
-            self._stdout.write(' |\n')
+        self._stdout.write('| ', flush=False)
+        self._stdout.highlight(status, flush=False)
+        self._stdout.write(' |\n')
 
     def _should_clear_markers(self, clear):
         return clear and self._keyword_marker.marking_enabled
 
     def _clear_status(self, erase_last_message=True):
-        # self._clear_debug_end()
-        self._write_debug_end(erase_last_message)
+        self._clear_debug()
+        self._write_debug(erase_last_message)
 
     def _clear_debug(self):
-        self._stdout.write('\r\n%s\r\n' % (' ' * self._width))
-        self._keyword_marker.reset_count()
-
-    def _clear_debug_end(self):
-        self._stdout.write('\r\n')
+        self._stdout.write('\r%s\r' % (' ' * self._width))
         self._keyword_marker.reset_count()
 
     def message(self, message):
@@ -182,7 +171,7 @@ class VerboseWriter(object):
         if not self._keyword_marker.marking_enabled:
             return
         if depth <= self._verbose_level:
-            name = self._keyword_marker.label_writer(kw).split(".",1)[-1]
+            name = self._keyword_marker.label_writer(kw)
             label = self._keyword_label(name, depth)
             self._start_keyword_marker(label)
 
@@ -192,11 +181,11 @@ class VerboseWriter(object):
         status = 'PASS' if kw.status != 'FAIL' else 'FAIL'
         if depth <= self._verbose_level:
             self._end_keyword_marker(status)
-        # else:
-        #     if self._keyword_marker.marker_count == self._status_length:
-        #         self._clear_status(False)
-        #         self._keyword_marker.reset_count()
-        #     self._keyword_marker.mark(status)
+        else:
+            if self._keyword_marker.marker_count == self._status_length:
+                self._clear_status(False)
+                self._keyword_marker.reset_count()
+            self._keyword_marker.mark(status)
 
     def _start_keyword_marker(self, label):
         if self._break_line_needed:
